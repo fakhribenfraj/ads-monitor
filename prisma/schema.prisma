@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  name          String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  notifications Notification[]
+  briefReads    BriefRead[]
+}
+
+model Brand {
+  id          String   @id @default(uuid())
+  externalId  String?  @unique
+  firstName   String
+  logo        String?
+  type        String?  @default("brand")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  briefs      Brief[]
+}
+
+model Brief {
+  id              String         @id @default(uuid())
+  externalId      String?        @unique
+  brief           String
+  campaignName    String
+  category        String
+  dateCampaign    DateTime
+  descriptionCampaign String      @db.Text
+  logo            String?
+  price           String
+  priceCreator    String
+  numberCreators  Int            @default(0)
+  status          BriefStatus    @default(PENDING)
+  typePosting     String[]       @default(["posting"])
+  platform        String[]       @default(["tiktok"])
+  activeCreators  Int            @default(0)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  brand           Brand?         @relation(fields: [brandId], references: [id])
+  brandId         String?
+  notifications   Notification[]
+  reads           BriefRead[]
+}
+
+enum BriefStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+}
+
+model Notification {
+  id          String           @id @default(uuid())
+  type        NotificationType
+  title       String
+  message     String           @db.Text
+  read        Boolean          @default(false)
+  data        Json?
+  createdAt   DateTime         @default(now())
+  user        User?            @relation(fields: [userId], references: [id])
+  userId      String?
+  brief       Brief?           @relation(fields: [briefId], references: [id])
+  briefId     String?
+
+  @@index([userId])
+  @@index([briefId])
+  @@index([createdAt])
+}
+
+enum NotificationType {
+  NEW_BRIEF
+  BRIEF_STATUS_CHANGED
+  BRIEF_PROGRESS
+  BRIEF_REMINDER
+  SYSTEM
+}
+
+model BriefRead {
+  id        String   @id @default(uuid())
+  brief     Brief    @relation(fields: [briefId], references: [id])
+  briefId   String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  readAt    DateTime @default(now())
+
+  @@unique([briefId, userId])
+  @@index([userId])
+}
+
+model Settings {
+  id            String   @id @default(uuid())
+  name          String   @default("default")
+  credentials   Json?
+  lastSyncAt    DateTime?
+  syncEnabled   Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([name])
+}
