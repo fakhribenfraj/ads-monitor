@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { NavDrawer, MobileNavToggle } from '@/components/NavDrawer'
-import { clearAuth, getAuthToken } from '@/services/api'
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -15,22 +14,18 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [isNavOpen, setIsNavOpen] = useState(false)
 
   useEffect(() => {
-    const token = getAuthToken()
-    if (!token) {
-      router.push('/')
-    }
-  }, [router])
-
-  useEffect(() => {
     setIsNavOpen(false)
   }, [pathname])
 
   const handleLogout = () => {
-    clearAuth()
+    // Clear any local storage data
+    localStorage.removeItem('lastBriefId')
+    localStorage.removeItem('credentials')
+    localStorage.removeItem('accessToken')
     router.push('/')
   }
 
-  const isAuthPage = pathname === '/' || pathname === '/login'
+  const isAuthPage = pathname === '/'
 
   if (isAuthPage) {
     return <>{children}</>

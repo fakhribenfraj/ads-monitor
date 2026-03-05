@@ -8,7 +8,6 @@ import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Users, RefreshCw, DollarSign, LayoutGrid } from "lucide-react";
 import type { Brief } from "@/types";
-import { findBriefWithRetry, getAuthToken } from "@/services/api";
 
 export function BriefsList() {
   const POLLING_INTERVAL = 30000;
@@ -20,17 +19,13 @@ export function BriefsList() {
   } = useQuery({
     queryKey: ["briefs"],
     queryFn: async () => {
-      const token = getAuthToken();
-      if (!token) return [];
-      const response = await findBriefWithRetry({
-        brief: "public",
-        typePosting: "posting",
-        status: "PENDING",
-        platform: ["tiktok", "instagram"],
-      });
-      return response.response || [];
+      const response = await fetch("/api/briefs/external");
+      if (!response.ok) {
+        throw new Error("Failed to fetch briefs");
+      }
+      const data = await response.json();
+      return data.response || [];
     },
-    enabled: !!getAuthToken(),
     refetchInterval: POLLING_INTERVAL,
   });
 

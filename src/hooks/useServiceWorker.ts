@@ -89,20 +89,25 @@ export function useServiceWorker() {
     }
   }, [])
 
-  const startPolling = useCallback(async (credentials: { email: string; password: string }, token: string) => {
+  const startPolling = useCallback(async () => {
     if (!swRef.current) {
       console.error('Service Worker not registered')
       return
     }
 
+    // Store configuration for the service worker
     const cache = await caches.open('ads-notif-v1')
-    await cache.put('/credentials', new Response(JSON.stringify(credentials)))
-    await cache.put('/token', new Response(JSON.stringify({ token })))
-
+    
     const lastBriefId = localStorage.getItem('lastBriefId')
     if (lastBriefId) {
       await cache.put('/lastBriefId', new Response(JSON.stringify({ briefId: lastBriefId })))
     }
+
+    // Store API endpoint configuration
+    const config = {
+      apiUrl: '/api/briefs/check'
+    }
+    await cache.put('/config', new Response(JSON.stringify(config)))
 
     swRef.current.active?.postMessage({ type: 'START_POLLING' })
     setPollingState((prev) => ({ ...prev, isActive: true }))

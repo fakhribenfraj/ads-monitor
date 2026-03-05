@@ -1,4 +1,4 @@
-const API_BASE_URL = "https://connectcontent.me/api";
+const API_BASE_URL = "/api"; // Use internal API
 const POLLING_INTERVAL = 60 * 1000; // 1 minute
 const CACHE_NAME = "ads-notif-v1";
 
@@ -100,23 +100,14 @@ function stopTestMode() {
 async function checkForNewBriefs() {
   console.log("Checking for new briefs...");
   try {
-    const token = await getToken();
-    if (!token) {
-      await notifyClient({
-        type: "POLLING_ERROR",
-        error: "No token available",
-      });
-      return;
-    }
-
+    // Use internal API endpoint that handles authentication server-side
     const response = await fetch(
-      `${API_BASE_URL}/campaign/find-brief-in-creator`,
+      `${API_BASE_URL}/briefs/check`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json, text/plain, */*",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           brief: "public",
@@ -127,50 +118,9 @@ async function checkForNewBriefs() {
       },
     );
 
-    if (response.status === 401) {
-      const credentials = await getCredentials();
-      if (credentials) {
-        const loginResponse = await fetch(`${API_BASE_URL}/loginCreator`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json, text/plain, */*",
-          },
-          body: JSON.stringify(credentials),
-        });
-
-        if (loginResponse.ok) {
-          const loginData = await loginResponse.json();
-          const newToken = loginData.accessToken;
-          await storeToken(newToken);
-
-          const retryResponse = await fetch(
-            `${API_BASE_URL}/campaign/find-brief-in-creator`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Accept: "application/json, text/plain, */*",
-                Authorization: `Bearer ${newToken}`,
-              },
-              body: JSON.stringify({
-                brief: "public",
-                typePosting: "posting",
-                status: "PENDING",
-                platform: ["tiktok", "instagram"],
-              }),
-            },
-          );
-
-          if (retryResponse.ok) {
-            const data = await retryResponse.json();
-            await processBriefs(data?.response || []);
-          }
-        }
-      }
-    } else if (response.ok) {
+    if (response.ok) {
       const data = await response.json();
-      await processBriefs(data?.response || []);
+      await processBriefs(data?.briefs || []);
     }
 
     await notifyClient({
@@ -242,30 +192,6 @@ async function notifyClient(message) {
   clients.forEach((client) => {
     client.postMessage(message);
   });
-}
-
-async function getToken() {
-  const cache = await caches.open(CACHE_NAME);
-  const response = await cache.match("/token");
-  if (response) {
-    const data = await response.json();
-    return data.token;
-  }
-  return null;
-}
-
-async function storeToken(token) {
-  const cache = await caches.open(CACHE_NAME);
-  await cache.put("/token", new Response(JSON.stringify({ token })));
-}
-
-async function getCredentials() {
-  const cache = await caches.open(CACHE_NAME);
-  const response = await cache.match("/credentials");
-  if (response) {
-    return response.json();
-  }
-  return null;
 }
 
 async function getLastBriefId() {

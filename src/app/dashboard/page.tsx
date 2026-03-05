@@ -4,37 +4,32 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useServiceWorker } from '@/hooks/useServiceWorker'
-import { getAuthToken } from '@/services/api'
 import { Activity, Clock, FileText, Bell } from 'lucide-react'
 
 export default function DashboardPage() {
   const { pollingState, startPolling, stopPolling, startTestMode, stopTestMode } = useServiceWorker()
-  const [credentials, setCredentials] = useState<{ email: string; password: string } | null>(null)
+  const [email, setEmail] = useState<string | null>(null)
 
   useEffect(() => {
-    const stored = localStorage.getItem('credentials')
-    if (stored) {
+    // Get email from environment variables (exposed via API)
+    const fetchConfig = async () => {
       try {
-        setCredentials(JSON.parse(stored))
-      } catch {
-        setCredentials(null)
+        const response = await fetch('/api/settings');
+        if (response.ok) {
+          const data = await response.json();
+          setEmail(data.email || null);
+        }
+      } catch (error) {
+        console.error('Failed to fetch settings:', error);
       }
-    }
-
-    const token = getAuthToken()
-    if (token && stored) {
-      const creds = JSON.parse(stored)
-      startPolling(creds, token)
-    }
-  }, [startPolling])
+    };
+    
+    fetchConfig();
+  }, [])
 
   const handleStartPolling = async () => {
-    if (credentials) {
-      const token = getAuthToken()
-      if (token) {
-        await startPolling(credentials, token)
-      }
-    }
+    // The service worker will handle authentication server-side
+    await startPolling()
   }
 
   const handleStopPolling = async () => {
@@ -53,13 +48,13 @@ export default function DashboardPage() {
         <h1 className="text-2xl font-bold">Dashboard</h1>
       </div>
 
-      {credentials && (
+      {email && (
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium">Logged in as</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">{credentials.email}</p>
+            <p className="text-sm text-muted-foreground">{email}</p>
           </CardContent>
         </Card>
       )}
@@ -139,17 +134,17 @@ export default function DashboardPage() {
             </div>
           )}
           
-          <div className="flex gap-4">
-            {!pollingState.isActive ? (
-              <Button onClick={handleStartPolling} disabled={!credentials}>
-                Start Monitoring
-              </Button>
-            ) : (
-              <Button variant="outline" onClick={handleStopPolling}>
-                Stop Monitoring
-              </Button>
-            )}
-          </div>
+           <div className="flex gap-4">
+             {!pollingState.isActive ? (
+               <Button onClick={handleStartPolling} disabled={!email}>
+                 Start Monitoring
+               </Button>
+             ) : (
+               <Button variant="outline" onClick={handleStopPolling}>
+                 Stop Monitoring
+               </Button>
+             )}
+           </div>
 
           <div className="border-t pt-4 mt-4">
             <p className="text-sm font-medium mb-2">Test Notifications</p>

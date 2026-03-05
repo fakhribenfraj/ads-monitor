@@ -18,7 +18,6 @@ import {
   X
 } from "lucide-react";
 import type { Brief } from "@/types";
-import { findBriefWithRetry, getAuthToken } from "@/services/api";
 
 type StatusFilter = "ALL" | "PENDING" | "ACTIVE" | "COMPLETED";
 type PlatformFilter = "ALL" | "tiktok" | "instagram";
@@ -38,17 +37,13 @@ export default function BriefsPage() {
   } = useQuery({
     queryKey: ["briefs"],
     queryFn: async () => {
-      const token = getAuthToken();
-      if (!token) return [];
-      const response = await findBriefWithRetry({
-        brief: "public",
-        typePosting: "posting",
-        status: "PENDING",
-        platform: ["tiktok", "instagram"],
-      });
-      return response.response || [];
+      const response = await fetch("/api/briefs/external");
+      if (!response.ok) {
+        throw new Error("Failed to fetch briefs");
+      }
+      const data = await response.json();
+      return data.response || [];
     },
-    enabled: !!getAuthToken(),
     refetchInterval: 30000,
   });
 
