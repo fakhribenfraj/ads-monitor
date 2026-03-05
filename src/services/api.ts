@@ -3,6 +3,8 @@ import type { LoginCredentials, LoginResponse, FindBriefRequest, FindBriefRespon
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://connectcontent.me/api'
 
+const isBrowser = typeof window !== 'undefined'
+
 export const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -15,15 +17,16 @@ let authToken: string | null = null
 
 export function setAuthToken(token: string | null) {
   authToken = token
-  if (token) {
+  if (token && isBrowser) {
     localStorage.setItem('accessToken', token)
-  } else {
+  } else if (isBrowser) {
     localStorage.removeItem('accessToken')
   }
 }
 
 export function getAuthToken(): string | null {
   if (authToken) return authToken
+  if (!isBrowser) return null
   return localStorage.getItem('accessToken')
 }
 
@@ -66,6 +69,7 @@ export async function findBriefWithRetry(request: FindBriefRequest): Promise<Fin
 }
 
 function getStoredCredentials(): LoginCredentials | null {
+  if (!isBrowser) return null
   const stored = localStorage.getItem('credentials')
   if (stored) {
     try {
@@ -78,11 +82,13 @@ function getStoredCredentials(): LoginCredentials | null {
 }
 
 export function storeCredentials(credentials: LoginCredentials) {
+  if (!isBrowser) return
   localStorage.setItem('credentials', JSON.stringify(credentials))
 }
 
 export function clearAuth() {
   setAuthToken(null)
+  if (!isBrowser) return
   localStorage.removeItem('credentials')
   localStorage.removeItem('lastBriefId')
 }
