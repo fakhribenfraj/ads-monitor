@@ -27,6 +27,8 @@ interface BriefsListProps {
 }
 
 export function BriefsList({ filter }: BriefsListProps) {
+  const POLLING_INTERVAL = 60000 * 5;
+
   const {
     data: briefsData,
     refetch,
@@ -41,6 +43,7 @@ export function BriefsList({ filter }: BriefsListProps) {
       const data = await response.json();
       return data.response || [];
     },
+    refetchInterval: POLLING_INTERVAL,
   });
 
   const getBriefCreators = (brief: Brief) =>
