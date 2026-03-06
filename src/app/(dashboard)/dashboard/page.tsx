@@ -1,30 +1,14 @@
 'use client'
 
-import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useServiceWorker } from '@/hooks/useServiceWorker'
-import { Activity, Clock, FileText, Bell } from 'lucide-react'
+import { Bell } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 
 export default function DashboardPage() {
-  const { pollingState, startPolling, stopPolling, startTestMode, stopTestMode } = useServiceWorker()
+  const { pollingState, startTestMode, stopTestMode } = useServiceWorker()
   const { data: session } = useSession()
-
-  const handleStartPolling = async () => {
-    // The service worker will handle authentication server-side
-    await startPolling()
-  }
-
-  const handleStopPolling = async () => {
-    await stopPolling()
-  }
-
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'Never'
-    const date = new Date(dateString)
-    return date.toLocaleString()
-  }
 
   return (
     <div className="space-y-6">
@@ -43,62 +27,6 @@ export default function DashboardPage() {
         </Card>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Monitoring Status</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <div
-                className={`h-3 w-3 rounded-full ${
-                  pollingState.isActive ? 'bg-green-500' : 'bg-gray-400'
-                }`}
-              />
-              <span className="text-lg font-bold">
-                {pollingState.isActive ? 'Active' : 'Inactive'}
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {pollingState.isActive
-                ? 'Checking every 1 minute'
-                : 'Click start to begin monitoring'}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Last Check</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-lg font-bold">
-              {formatDate(pollingState.lastCheck)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Next check in 1 min after start
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Last Brief ID</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-lg font-bold truncate">
-              {pollingState.lastBriefId || 'No briefs detected'}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Stored brief ID for deduplication
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -108,49 +36,24 @@ export default function DashboardPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            When a new brief with status PENDING appears, you will receive a browser
-            notification automatically.
+            Test notifications to verify your browser notification setup.
           </p>
           
-          {pollingState.error && (
-            <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md">
-              Error: {pollingState.error}
-            </div>
-          )}
-          
-           <div className="flex gap-4">
-              {!pollingState.isActive ? (
-                <Button onClick={handleStartPolling} disabled={!session?.user?.email}>
-                  Start Monitoring
+          <div className="flex gap-4">
+            {!pollingState.testMode ? (
+              <Button variant="secondary" onClick={startTestMode}>
+                Start Test Mode
+              </Button>
+            ) : (
+              <>
+                <Button variant="outline" onClick={stopTestMode}>
+                  Stop Test Mode
                 </Button>
-              ) : (
-               <Button variant="outline" onClick={handleStopPolling}>
-                 Stop Monitoring
-               </Button>
-             )}
-           </div>
-
-          <div className="border-t pt-4 mt-4">
-            <p className="text-sm font-medium mb-2">Test Notifications</p>
-            <p className="text-xs text-muted-foreground mb-3">
-              Send a test notification every 1 minute with dummy text.
-            </p>
-            <div className="flex gap-4">
-              {!pollingState.testMode ? (
-                <Button variant="secondary" onClick={startTestMode}>
-                  Start Test Mode
-                </Button>
-              ) : (
-                <>
-                  <Button variant="outline" onClick={stopTestMode}>
-                    Stop Test Mode
-                  </Button>
-                  <span className="text-sm text-muted-foreground self-center">
-                    Sent: {pollingState.testCount}
-                  </span>
-                </>
-              )}
-            </div>
+                <span className="text-sm text-muted-foreground self-center">
+                  Sent: {pollingState.testCount}
+                </span>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>
