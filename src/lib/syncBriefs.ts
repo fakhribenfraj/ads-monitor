@@ -137,24 +137,6 @@ async function getOrCreateBrand(brandData: ExternalBrief["idBrand"]) {
   });
 }
 
-async function createNotificationForBrief(brief: ExternalBrief) {
-  const notification = await prisma.notification.create({
-    data: {
-      type: "NEW_BRIEF",
-      title: "New Brief Available",
-      message: `New brief "${brief.campaignName}" is now available. Category: ${brief.category}`,
-      data: {
-        briefId: brief._id,
-        campaignName: brief.campaignName,
-        category: brief.category,
-        priceCreator: brief.priceCreator,
-      },
-    },
-  });
-
-  return notification;
-}
-
 export async function syncBriefs(): Promise<{
   newBriefs: number;
   totalBriefs: number;
@@ -224,9 +206,18 @@ export async function syncBriefs(): Promise<{
           },
         });
 
-        await createNotificationForBrief(brief);
         newBriefs++;
       }
+    }
+
+    if (newBriefs > 0) {
+      await prisma.notification.create({
+        data: {
+          type: "NEW_BRIEF",
+          title: "New Briefs found",
+          message: `${newBriefs} new brief${newBriefs > 1 ? "s" : ""}.`,
+        },
+      });
     }
 
     const totalBriefs = await prisma.brief.count();
