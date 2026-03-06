@@ -8,18 +8,13 @@ export interface LoginResponse {
 }
 
 export interface Brief {
-  _id: string;
+  id: string;
   brief: string;
   campaignName: string;
   category: string;
   dateCampaign: string;
   descriptionCampaign: string;
-  idBrand: {
-    _id: string;
-    firstName: string;
-    __t: string;
-    logo: string;
-  };
+
   logo: string;
   price: string;
   priceCreator: string;
