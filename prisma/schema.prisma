@@ -7,16 +7,17 @@ datasource db {
 }
 
 model User {
-  id            String         @id @default(uuid())
-  email         String         @unique
-  name          String?
-  password      String?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  notifications Notification[]
-  briefReads    BriefRead[]
-  accounts      Account[]
-  sessions      Session[]
+  id               String             @id @default(uuid())
+  email            String             @unique
+  name             String?
+  password         String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  notifications    Notification[]
+  briefReads       BriefRead[]
+  accounts         Account[]
+  sessions         Session[]
+  notificationSent NotificationSent[]
 }
 
 model Brand {
@@ -61,17 +62,18 @@ enum BriefStatus {
 }
 
 model Notification {
-  id          String           @id @default(uuid())
-  type        NotificationType
-  title       String
-  message     String           @db.Text
-  read        Boolean          @default(false)
-  data        Json?
-  createdAt   DateTime         @default(now())
-  user        User?            @relation(fields: [userId], references: [id])
-  userId      String?
-  brief       Brief?           @relation(fields: [briefId], references: [id])
-  briefId     String?
+  id               String             @id @default(uuid())
+  type             NotificationType
+  title            String
+  message          String             @db.Text
+  read             Boolean            @default(false)
+  data             Json?
+  createdAt        DateTime           @default(now())
+  user             User?              @relation(fields: [userId], references: [id])
+  userId           String?
+  brief            Brief?             @relation(fields: [briefId], references: [id])
+  briefId          String?
+  notificationSent NotificationSent[]
 
   @@index([userId])
   @@index([briefId])
@@ -147,4 +149,19 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model NotificationSent {
+  id             String      @id @default(uuid())
+  userId         String
+  notificationId String
+  read           Boolean     @default(false)
+  sentAt         DateTime    @default(now())
+  readAt         DateTime?
+  user           User        @relation(fields: [userId], references: [id])
+  notification   Notification @relation(fields: [notificationId], references: [id])
+
+  @@index([userId])
+  @@index([notificationId])
+  @@unique([userId, notificationId])
 }
