@@ -10,7 +10,10 @@ export async function GET(request: NextRequest) {
     const where: Record<string, unknown> = {};
 
     if (userId) {
-      where.userId = userId;
+      where.OR = [
+        { userId: userId },
+        { userId: null },
+      ];
     }
 
     if (unreadOnly) {
@@ -30,7 +33,7 @@ export async function GET(request: NextRequest) {
 
     const unreadCount = await prisma.notification.count({
       where: {
-        ...(userId ? { userId } : {}),
+        ...(userId ? { OR: [{ userId }, { userId: null }] } : {}),
         read: false,
       },
     });
