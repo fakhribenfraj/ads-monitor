@@ -20,15 +20,11 @@ export function useServiceWorker() {
       return
     }
 
-    navigator.serviceWorker
-      .register('/sw.js')
-      .then((registration) => {
+    navigator.serviceWorker.getRegistration().then((registration) => {
+      if (registration) {
         swRef.current = registration
-        console.log('Service Worker registered:', registration.scope)
-      })
-      .catch((error) => {
-        console.error('Service Worker registration failed:', error)
-      })
+      }
+    })
 
     const handleMessage = (event: MessageEvent) => {
       const { data } = event
@@ -41,6 +37,12 @@ export function useServiceWorker() {
           type: 'TEST_NOTIFICATION',
           count: 1,
         })
+      } else if (data.type === 'NEW_NOTIFICATION') {
+        addNotification({
+          type: 'NEW_BRIEFS',
+          count: 1,
+          briefId: data.notification?.briefId,
+        })
       }
     }
 
@@ -52,25 +54,35 @@ export function useServiceWorker() {
   }, [])
 
   const startTestMode = useCallback(async () => {
-    if (!swRef.current) {
+    const registration = await navigator.serviceWorker.getRegistration()
+    if (!registration) {
       console.error('Service Worker not registered')
       return
     }
 
-    swRef.current.active?.postMessage({ type: 'START_TEST_MODE' })
+    registration.active?.postMessage({ type: 'START_TEST_MODE' })
     setPollingState((prev) => ({ ...prev, testMode: true, testCount: 0 }))
   }, [])
 
   const stopTestMode = useCallback(async () => {
-    if (!swRef.current) return
+    const registration = await navigator.serviceWorker.getRegistration()
+    if (!registration) return
     
-    swRef.current.active?.postMessage({ type: 'STOP_TEST_MODE' })
+    registration.active?.postMessage({ type: 'STOP_TEST_MODE' })
     setPollingState((prev) => ({ ...prev, testMode: false }))
+  }, [])
+
+  const stopPolling = useCallback(async () => {
+    const registration = await navigator.serviceWorker.getRegistration()
+    if (!registration) return
+    
+    registration.active?.postMessage({ type: 'STOP_POLLING' })
   }, [])
 
   return {
     pollingState,
     startTestMode,
     stopTestMode,
+    stopPolling,
   }
 }
