@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { syncBriefs } from "@/lib/syncBriefs";
 
 export async function GET(request: NextRequest) {
   try {
+    const result = await syncBriefs();
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
     const platform = searchParams.getAll("platform");
@@ -37,7 +39,7 @@ export async function GET(request: NextRequest) {
     console.error("Error fetching briefs:", error);
     return NextResponse.json(
       { error: "Failed to fetch briefs" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -108,7 +110,7 @@ export async function POST(request: NextRequest) {
       const existingBrief = await prisma.brief.findUnique({
         where: { externalId },
       });
-      
+
       if (existingBrief) {
         createdBrief = await prisma.brief.update({
           where: { externalId },
@@ -139,7 +141,7 @@ export async function POST(request: NextRequest) {
     console.error("Error creating brief:", error);
     return NextResponse.json(
       { error: "Failed to create brief" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

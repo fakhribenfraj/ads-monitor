@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { syncBriefs } from "@/lib/syncBriefs";
+import { revalidatePath } from "next/cache";
 
 export async function GET() {
   try {
@@ -14,7 +15,7 @@ export async function GET() {
         { status: 500 },
       );
     }
-
+    revalidatePath("/briefs");
     return NextResponse.json({
       success: true,
       ...result,

@@ -118,6 +118,53 @@ async function fetchBriefsFromExternalApi(
   return response.data.response || [];
 }
 
+interface FetchBriefsOptions {
+  status?: string;
+  platform?: string[];
+  category?: string;
+}
+
+export async function fetchBriefsFromExternalApiWithCredentials(
+  options: FetchBriefsOptions = {}
+): Promise<ExternalBrief[]> {
+  const credentials = await getStoredCredentials();
+
+  if (!credentials) {
+    throw new Error("No credentials stored. Please configure API credentials.");
+  }
+
+  const token = await loginToExternalApi(credentials.email, credentials.password);
+
+  const requestBody = {
+    brief: "public",
+    typePosting: "posting",
+    status: options.status || "PENDING",
+    platform: options.platform || ["tiktok", "instagram"],
+  };
+
+  const response = await withRetry(() =>
+    axiosInstance.post(
+      "/campaign/find-brief-in-creator",
+      requestBody,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    ),
+  );
+
+  let briefs: ExternalBrief[] = response.data.response || [];
+
+  if (options.category) {
+    briefs = briefs.filter(brief => 
+      brief.category.toLowerCase().includes(options.category!.toLowerCase())
+    );
+  }
+
+  return briefs;
+}
+
 async function getOrCreateBrand(brandData: ExternalBrief["idBrand"]) {
   const existingBrand = await prisma.brand.findFirst({
     where: { externalId: brandData._id },
@@ -207,6 +254,13 @@ export async function syncBriefs(): Promise<{
         });
 
         newBriefs++;
+      } else if (existingBrief.activeCreators !== brief.activeCreators) {
+        await prisma.brief.update({
+          where: { id: existingBrief.id },
+          data: {
+            activeCreators: brief.activeCreators,
+          },
+        });
       }
     }
 
