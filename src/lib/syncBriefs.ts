@@ -191,6 +191,7 @@ export async function syncBriefs(): Promise<{
 }> {
   const errors: string[] = [];
   let newBriefs = 0;
+  const newBriefsData: ExternalBrief[] = [];
 
   try {
     const credentials = await getStoredCredentials();
@@ -254,6 +255,7 @@ export async function syncBriefs(): Promise<{
         });
 
         newBriefs++;
+        newBriefsData.push(brief);
       } else if (existingBrief.activeCreators !== brief.activeCreators) {
         await prisma.brief.update({
           where: { id: existingBrief.id },
@@ -265,11 +267,37 @@ export async function syncBriefs(): Promise<{
     }
 
     if (newBriefs > 0) {
+      const totalCreators = newBriefsData.reduce((sum, b) => sum + b.numberCreators, 0);
+      const prices = newBriefsData.map(b => parseFloat(b.price.replace(/[^0-9.-]/g, '')) || 0);
+      const avgPrice = prices.length > 0 ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
+      const maxPrice = Math.max(...prices, 0);
+      const minPrice = Math.min(...prices.filter(p => p > 0), 0);
+
+      const briefDetails = newBriefsData.slice(0, 3).map(b => 
+        `• ${b.campaignName}: ${b.price} (${b.numberCreators} creator${b.numberCreators > 1 ? 's' : ''})`
+      ).join('\n');
+      
+      const additionalCount = newBriefsData.length - 3;
+      const additionalInfo = additionalCount > 0 ? `\n+ ${additionalCount} more brief${additionalCount > 1 ? 's' : ''}` : '';
+
       await prisma.notification.create({
         data: {
           type: "NEW_BRIEF",
-          title: "New Briefs found",
-          message: `${newBriefs} new brief${newBriefs > 1 ? "s" : ""}.`,
+          title: `${newBriefs} New Brief${newBriefs > 1 ? 's' : ''} Found`,
+          message: `Total: ${newBriefs} brief${newBriefs > 1 ? 's' : ''} | ${totalCreators} creator${totalCreators > 1 ? 's' : ''} needed | Avg: $${avgPrice.toFixed(0)} ($${minPrice.toFixed(0)} - $${maxPrice.toFixed(0)})\n\n${briefDetails}${additionalInfo}`,
+          data: {
+            totalBriefs: newBriefs,
+            totalCreators,
+            avgPrice: avgPrice.toFixed(0),
+            minPrice: minPrice.toFixed(0),
+            maxPrice: maxPrice.toFixed(0),
+            briefs: newBriefsData.map(b => ({
+              id: b._id,
+              campaignName: b.campaignName,
+              price: b.price,
+              numberCreators: b.numberCreators,
+            })),
+          },
         },
       });
     }
