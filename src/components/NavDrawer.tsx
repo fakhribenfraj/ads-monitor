@@ -11,11 +11,13 @@ import {
   LogOut,
   X,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface NavDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onLogout: () => void;
+  unreadCount?: number;
 }
 
 const mainNavItems = [
@@ -44,7 +46,7 @@ const bottomNavItems = [
   },
 ];
 
-export function NavDrawer({ isOpen, onClose, onLogout }: NavDrawerProps) {
+export function NavDrawer({ isOpen, onClose, onLogout, unreadCount = 0 }: NavDrawerProps) {
   const pathname = usePathname();
 
   return (
@@ -72,10 +74,11 @@ export function NavDrawer({ isOpen, onClose, onLogout }: NavDrawerProps) {
           </button>
         </div>
 
-        <nav className="p-4 space-y-2">
+          <nav className="p-4 space-y-2">
           <div className="space-y-1">
             {mainNavItems.map((item) => {
               const isActive = pathname === item.href;
+              const showBadge = item.href === "/notifications" && unreadCount > 0;
               return (
                 <Link
                   key={item.href}
@@ -90,6 +93,11 @@ export function NavDrawer({ isOpen, onClose, onLogout }: NavDrawerProps) {
                 >
                   <item.icon className="h-5 w-5" />
                   {item.title}
+                  {showBadge && (
+                    <Badge variant="destructive" className="ml-auto">
+                      {unreadCount}
+                    </Badge>
+                  )}
                 </Link>
               );
             })}
