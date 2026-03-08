@@ -1,6 +1,6 @@
-# Ads Notif - Brief Monitor PWA
+# Creator Pulse - Brief Monitor PWA
 
-A Next.js 14 App Router PWA that monitors ConnectContent for new briefs and sends browser push notifications.
+A Next.js 14 App Router PWA that monitors ConnectContent for new briefs and sends browser push notifications so content creators never miss an opportunity.
 
 ## Features
 
@@ -47,7 +47,7 @@ npm start
 
 - Chrome/Edge: Click the install icon in the address bar
 - Safari (iOS): Share > Add to Home Screen
-- Desktop: Menu > Install AdsNotif
+- Desktop: Menu > Install Creator Pulse
 
 ## Project Structure
 

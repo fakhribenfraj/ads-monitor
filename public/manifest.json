@@ -1,11 +1,11 @@
 {
-  "name": "Ads Notif - Brief Monitor",
-  "short_name": "AdsNotif",
-  "description": "Monitor new briefs from ConnectContent and receive push notifications",
+  "name": "Creator Pulse - Brief Monitor",
+  "short_name": "Creator Pulse",
+  "description": "Monitor new briefs from ConnectContent and receive push notifications for creator opportunities",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#000000",
+  "background_color": "#f8fafc",
+  "theme_color": "#f97316",
   "icons": [
     {
       "src": "/icon-192.svg",
@@ -24,7 +24,7 @@
       "purpose": "maskable"
     }
   ],
-  "categories": ["news", "productivity"],
+  "categories": ["news", "productivity", "business"],
   "shortcuts": [
     {
       "name": "View Briefs",

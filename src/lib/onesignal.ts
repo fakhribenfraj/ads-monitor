@@ -28,7 +28,7 @@ export async function sendOneSignalNotification(notification: OneSignalNotificat
           en: notification.content,
         },
         data: notification.data || {},
-        url: notification.url || 'https://ads-notif.vercel.app',
+        url: notification.url || process.env.NEXT_PUBLIC_APP_URL || 'https://creatorpulse.com',
         target_channel: 'push',
         included_segments: ['All'],
       },

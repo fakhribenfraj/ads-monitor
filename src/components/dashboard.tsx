@@ -43,7 +43,7 @@ export function Dashboard({ onLogout }: DashboardProps) {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Brief Monitor</h1>
+        <h1 className="text-2xl font-bold">Creator Pulse</h1>
         <Button variant="outline" onClick={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" />
           Logout
