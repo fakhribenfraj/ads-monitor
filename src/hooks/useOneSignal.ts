@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useCallback, useState } from 'react'
 import { useSession } from 'next-auth/react'
 
 declare global {
@@ -13,6 +13,8 @@ export function useOneSignal() {
   const { data: session } = useSession()
   const initialized = useRef(false)
   const savedPlayerId = useRef<string | null>(null)
+  const [isSubscribed, setIsSubscribed] = useState(false)
+  const [isSupported, setIsSupported] = useState(true)
 
   const savePlayerId = useCallback(async (playerId: string) => {
     if (!session?.user?.id || savedPlayerId.current === playerId) return
@@ -30,6 +32,23 @@ export function useOneSignal() {
     }
   }, [session?.user?.id])
 
+  const showPrompt = useCallback(async () => {
+    if (window.OneSignal) {
+      window.OneSignal.push(function() {
+        window.OneSignal.showSlidedownPrompt()
+      })
+    }
+  }, [])
+
+  const checkSubscription = useCallback(async () => {
+    if (window.OneSignal) {
+      const subscribed = await window.OneSignal.isPushNotificationsEnabled()
+      setIsSubscribed(subscribed)
+      return subscribed
+    }
+    return false
+  }, [])
+
   useEffect(() => {
     if (initialized.current || typeof window === 'undefined') return
     initialized.current = true
@@ -45,12 +64,16 @@ export function useOneSignal() {
             welcomeNotification: {
               disable: true,
             },
+            autoRegister: false,
           })
 
           console.log('OneSignal initialized')
 
+          checkSubscription()
+
           window.OneSignal.on('subscriptionChange', async function(isSubscribed: boolean) {
             console.log('Subscription changed:', isSubscribed)
+            setIsSubscribed(isSubscribed)
             if (isSubscribed) {
               const playerId = await window.OneSignal.getUserId()
               console.log('Player ID:', playerId)
@@ -63,6 +86,12 @@ export function useOneSignal() {
           window.OneSignal.on('notificationClick', function(event: any) {
             console.log('Notification clicked:', event)
           })
+
+          setTimeout(() => {
+            if (!isSubscribed) {
+              window.OneSignal.showSlidedownPrompt()
+            }
+          }, 3000)
         })
       }
     }
@@ -71,6 +100,10 @@ export function useOneSignal() {
     script.src = 'https://cdn.onesignal.com/sdks/OneSignalSDK.js'
     script.async = true
     script.onload = initOneSignal
+    script.onerror = () => {
+      console.error('Failed to load OneSignal SDK')
+      setIsSupported(false)
+    }
     document.head.appendChild(script)
 
     return () => {
@@ -78,22 +111,7 @@ export function useOneSignal() {
         window.OneSignal = []
       }
     }
-  }, [savePlayerId])
+  }, [savePlayerId, checkSubscription, isSubscribed])
 
-  const showPrompt = useCallback(async () => {
-    if (window.OneSignal) {
-      window.OneSignal.push(function() {
-        window.OneSignal.showSlidedownPrompt()
-      })
-    }
-  }, [])
-
-  const isSubscribed = useCallback(async (): Promise<boolean> => {
-    if (window.OneSignal) {
-      return await window.OneSignal.isPushNotificationsEnabled()
-    }
-    return false
-  }, [])
-
-  return { showPrompt, isSubscribed }
+  return { showPrompt, isSubscribed, isSupported }
 }
