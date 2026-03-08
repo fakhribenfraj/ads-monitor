@@ -30,6 +30,7 @@ export async function sendOneSignalNotification(notification: OneSignalNotificat
         data: notification.data || {},
         url: notification.url || 'https://ads-notif.vercel.app',
         target_channel: 'push',
+        included_segments: ['All'],
       },
       {
         headers: {
