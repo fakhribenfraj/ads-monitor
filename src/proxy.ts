@@ -1,11 +1,19 @@
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 
-const publicPaths = ["/login", "/register", "/api/auth", "/api/sync", "/"];
+const publicPaths = ["/api/auth", "/api/sync", "/"];
 
 const proxy = auth((req) => {
   const isLoggedIn = !!req.auth;
   const { pathname } = req.nextUrl;
+
+  if (pathname === "/login" || pathname === "/register") {
+    if (isLoggedIn) {
+      const dashboardUrl = new URL("/dashboard", req.url);
+      return NextResponse.redirect(dashboardUrl);
+    }
+    return NextResponse.next();
+  }
 
   if (publicPaths.some((path) => pathname === path || pathname.startsWith(path + "/"))) {
     return NextResponse.next();

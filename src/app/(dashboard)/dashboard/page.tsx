@@ -3,8 +3,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useServiceWorker } from '@/hooks/useServiceWorker'
-import { Bell } from 'lucide-react'
-import { useSession } from 'next-auth/react'
+import { Bell, LogOut } from 'lucide-react'
+import { useSession, signOut } from 'next-auth/react'
 
 export default function DashboardPage() {
   const { pollingState, startTestMode, stopTestMode } = useServiceWorker()
@@ -14,6 +14,10 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Dashboard</h1>
+        <Button variant="outline" onClick={() => signOut({ callbackUrl: '/login' })}>
+          <LogOut className="mr-2 h-4 w-4" />
+          Logout
+        </Button>
       </div>
 
       {session?.user?.email && (
@@ -21,8 +25,9 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle className="text-sm font-medium">Logged in as</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-1">
             <p className="text-sm text-muted-foreground">{session.user.email}</p>
+            <p className="text-xs text-muted-foreground">ID: {session.user.id}</p>
           </CardContent>
         </Card>
       )}
