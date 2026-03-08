@@ -1,5 +1,49 @@
 import axios, { AxiosError } from "axios";
 import { prisma } from "@/lib/prisma";
+import { sendPushNotification } from "./webpush";
+
+async function sendPushNotificationsToAllUsers(title: string, message: string, data?: any) {
+  try {
+    const subscriptions = await prisma.pushSubscription.findMany();
+    
+    if (subscriptions.length === 0) {
+      console.log('No push subscriptions found');
+      return;
+    }
+
+    const payload = JSON.stringify({
+      title,
+      body: message,
+      data,
+    });
+
+    let successCount = 0;
+    let failedCount = 0;
+
+    for (const sub of subscriptions) {
+      const success = await sendPushNotification(
+        {
+          endpoint: sub.endpoint,
+          keys: sub.keys as { p256dh: string; auth: string },
+        },
+        payload
+      );
+
+      if (success) {
+        successCount++;
+      } else {
+        failedCount++;
+        await prisma.pushSubscription.delete({
+          where: { id: sub.id },
+        });
+      }
+    }
+
+    console.log(`Push notifications sent: ${successCount} success, ${failedCount} failed (removed)`);
+  } catch (error) {
+    console.error('Error sending push notifications:', error);
+  }
+}
 
 // use WHATWG URL API to avoid node deprecation warning coming from url.parse
 // build the URL once and pass it to axios as the baseURL
@@ -280,11 +324,14 @@ export async function syncBriefs(): Promise<{
       const additionalCount = newBriefsData.length - 3;
       const additionalInfo = additionalCount > 0 ? `\n+ ${additionalCount} more brief${additionalCount > 1 ? 's' : ''}` : '';
 
+      const notificationTitle = `${newBriefs} New Brief${newBriefs > 1 ? 's' : ''} Found`;
+      const notificationMessage = `Total: ${newBriefs} brief${newBriefs > 1 ? 's' : ''} | ${totalCreators} creator${totalCreators > 1 ? 's' : ''} needed | Avg: $${avgPrice.toFixed(0)} ($${minPrice.toFixed(0)} - $${maxPrice.toFixed(0)})\n\n${briefDetails}${additionalInfo}`;
+
       await prisma.notification.create({
         data: {
           type: "NEW_BRIEF",
-          title: `${newBriefs} New Brief${newBriefs > 1 ? 's' : ''} Found`,
-          message: `Total: ${newBriefs} brief${newBriefs > 1 ? 's' : ''} | ${totalCreators} creator${totalCreators > 1 ? 's' : ''} needed | Avg: $${avgPrice.toFixed(0)} ($${minPrice.toFixed(0)} - $${maxPrice.toFixed(0)})\n\n${briefDetails}${additionalInfo}`,
+          title: notificationTitle,
+          message: notificationMessage,
           data: {
             totalBriefs: newBriefs,
             totalCreators,
@@ -300,6 +347,8 @@ export async function syncBriefs(): Promise<{
           },
         },
       });
+
+      await sendPushNotificationsToAllUsers(notificationTitle, notificationMessage);
     }
 
     const totalBriefs = await prisma.brief.count();

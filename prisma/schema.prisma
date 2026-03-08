@@ -18,6 +18,7 @@ model User {
   accounts         Account[]
   sessions         Session[]
   notificationSent NotificationSent[]
+  pushSubscriptions PushSubscription[]
 }
 
 model Brand {
@@ -164,4 +165,16 @@ model NotificationSent {
   @@index([userId])
   @@index([notificationId])
   @@unique([userId, notificationId])
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  endpoint  String
+  keys      Json
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([endpoint])
+  @@index([userId])
 }

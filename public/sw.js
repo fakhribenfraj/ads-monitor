@@ -24,6 +24,42 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
 
+self.addEventListener("push", (event) => {
+  console.log("Push event received:", event);
+  
+  let data = {};
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {
+      data = { title: "Notification", body: event.data.text() };
+    }
+  }
+
+  const title = data.title || "New Notification";
+  const options = {
+    body: data.body || "You have a new notification",
+    icon: "/icon-192.svg",
+    badge: "/icon-192.svg",
+    data: data.data || {},
+    vibrate: [100, 50, 100],
+    requireInteraction: true,
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(title, options)
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  console.log("Notification clicked:", event.notification);
+  event.notification.close();
+
+  event.waitUntil(
+    clients.openWindow("/")
+  );
+});
+
 self.addEventListener("message", async (event) => {
   const { data } = event;
 
