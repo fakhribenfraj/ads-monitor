@@ -34,15 +34,19 @@ export function useOneSignal() {
 
   const showPrompt = useCallback(async () => {
     if (window.OneSignal) {
-      window.OneSignal.push(function() {
-        window.OneSignal.showSlidedownPrompt()
-      })
+      const { OneSignal } = window
+      if (OneSignal?.initialized) {
+        OneSignal.showSlidedownPrompt()
+      } else {
+        OneSignal.push(['showSlidedownPrompt'])
+      }
     }
   }, [])
 
   const checkSubscription = useCallback(async () => {
-    if (window.OneSignal) {
-      const subscribed = await window.OneSignal.isPushNotificationsEnabled()
+    const OneSignal = window.OneSignal
+    if (OneSignal?.initialized) {
+      const subscribed = await OneSignal.isPushNotificationsEnabled()
       setIsSubscribed(subscribed)
       return subscribed
     }
@@ -54,64 +58,69 @@ export function useOneSignal() {
     initialized.current = true
 
     const initOneSignal = () => {
-      if (typeof window !== 'undefined') {
-        window.OneSignal = window.OneSignal || []
-        
-        window.OneSignal.push(function() {
-          window.OneSignal.init({
-            appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
-            allowLocalhostAsSecureOrigin: true,
-            welcomeNotification: {
-              disable: true,
-            },
-            autoRegister: false,
-          })
+      const OneSignal = window.OneSignal
+      if (!OneSignal) return
 
-          console.log('OneSignal initialized')
-
-          checkSubscription()
-
-          window.OneSignal.on('subscriptionChange', async function(isSubscribed: boolean) {
-            console.log('Subscription changed:', isSubscribed)
-            setIsSubscribed(isSubscribed)
-            if (isSubscribed) {
-              const playerId = await window.OneSignal.getUserId()
-              console.log('Player ID:', playerId)
-              if (playerId) {
-                savePlayerId(playerId)
-              }
-            }
-          })
-
-          window.OneSignal.on('notificationClick', function(event: any) {
-            console.log('Notification clicked:', event)
-          })
-
-          setTimeout(() => {
-            if (!isSubscribed) {
-              window.OneSignal.showSlidedownPrompt()
-            }
-          }, 3000)
+      OneSignal.push(async function() {
+        await OneSignal.init({
+          appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
+          allowLocalhostAsSecureOrigin: true,
+          welcomeNotification: {
+            disable: true,
+          },
+          autoRegister: false,
         })
-      }
+
+        console.log('OneSignal initialized')
+
+        const subscribed = await OneSignal.isPushNotificationsEnabled()
+        setIsSubscribed(subscribed)
+
+        OneSignal.on('subscriptionChange', async function(isSubscribed: boolean) {
+          console.log('Subscription changed:', isSubscribed)
+          setIsSubscribed(isSubscribed)
+          if (isSubscribed) {
+            const playerId = await OneSignal.getUserId()
+            console.log('Player ID:', playerId)
+            if (playerId) {
+              savePlayerId(playerId)
+            }
+          }
+        })
+
+        OneSignal.on('notificationClick', function(event: any) {
+          console.log('Notification clicked:', event)
+        })
+
+        setTimeout(() => {
+          const currentSub = OneSignal.isPushNotificationsEnabled()
+          currentSub.then((subscribed: boolean) => {
+            if (!subscribed) {
+              OneSignal.showSlidedownPrompt()
+            }
+          })
+        }, 3000)
+      })
     }
 
-    const script = document.createElement('script')
-    script.src = 'https://cdn.onesignal.com/sdks/OneSignalSDK.js'
-    script.async = true
-    script.onload = initOneSignal
-    script.onerror = () => {
-      console.error('Failed to load OneSignal SDK')
-      setIsSupported(false)
+    if (window.OneSignal && window.OneSignal.initialized) {
+      initOneSignal()
+    } else {
+      const script = document.createElement('script')
+      script.src = 'https://cdn.onesignal.com/sdks/OneSignalSDK.js'
+      script.async = true
+      script.onload = initOneSignal
+      script.onerror = () => {
+        console.error('Failed to load OneSignal SDK')
+        setIsSupported(false)
+      }
+      document.head.appendChild(script)
     }
-    document.head.appendChild(script)
 
     return () => {
-      if (window.OneSignal) {
-        window.OneSignal = []
-      }
+      // Cleanup if needed
     }
-  }, [savePlayerId, checkSubscription, isSubscribed])
+  }, [savePlayerId])
 
   return { showPrompt, isSubscribed, isSupported }
 }
