@@ -1,45 +1,15 @@
 import axios, { AxiosError } from "axios";
 import { prisma } from "@/lib/prisma";
-import { sendPushNotification } from "./webpush";
+import { sendNotificationToAll } from "./onesignal";
 
 async function sendPushNotificationsToAllUsers(title: string, message: string, data?: any) {
   try {
-    const subscriptions = await prisma.pushSubscription.findMany();
-    
-    if (subscriptions.length === 0) {
-      console.log('No push subscriptions found');
-      return;
+    const success = await sendNotificationToAll(title, message, data);
+    if (success) {
+      console.log('OneSignal notification sent successfully');
+    } else {
+      console.log('Failed to send OneSignal notification');
     }
-
-    const payload = JSON.stringify({
-      title,
-      body: message,
-      data,
-    });
-
-    let successCount = 0;
-    let failedCount = 0;
-
-    for (const sub of subscriptions) {
-      const success = await sendPushNotification(
-        {
-          endpoint: sub.endpoint,
-          keys: sub.keys as { p256dh: string; auth: string },
-        },
-        payload
-      );
-
-      if (success) {
-        successCount++;
-      } else {
-        failedCount++;
-        await prisma.pushSubscription.delete({
-          where: { id: sub.id },
-        });
-      }
-    }
-
-    console.log(`Push notifications sent: ${successCount} success, ${failedCount} failed (removed)`);
   } catch (error) {
     console.error('Error sending push notifications:', error);
   }

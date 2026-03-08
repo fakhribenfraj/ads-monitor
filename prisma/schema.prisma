@@ -19,6 +19,7 @@ model User {
   sessions         Session[]
   notificationSent NotificationSent[]
   pushSubscriptions PushSubscription[]
+  onesignalPlayerId String?
 }
 
 model Brand {
